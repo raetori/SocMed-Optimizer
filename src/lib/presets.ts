@@ -217,6 +217,9 @@ export function buildFilterGraph(src: SourceInfo, opts: EncodeOptions): string {
   // Fine temporal grain before the 8-bit conversion breaks up banding in gradients.
   if (opts.deband) filters.push('noise=alls=2:allf=t')
   filters.push('format=yuv420p')
+  // Tag the frames themselves: newer ffmpeg takes encoder color tags from the
+  // frames, and untagged output is what platforms guess wrong (washed out).
+  filters.push('setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv')
   return filters.join(',')
 }
 
