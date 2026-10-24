@@ -297,8 +297,16 @@ export default function Optimize() {
                 />
                 <span className="variant-code">{variant.code}</span>
                 <span className="variant-text">
-                  <span className="variant-name">{variant.name}</span>
-                  <span className="muted small">{skipped ?? variant.question}</span>
+                  <span className="variant-name">
+                    {variant.name}
+                    {variant.code === 'I' && !skipped && <span className="variant-flag">very slow in the browser</span>}
+                  </span>
+                  <span className="muted small">
+                    {skipped ??
+                      (variant.code === 'I'
+                        ? `${variant.question} Upscaling to 4K can take an hour or more here — if you already have a 4K master, upload that straight to the platform instead.`
+                        : variant.question)}
+                  </span>
                 </span>
               </label>
             ))}
