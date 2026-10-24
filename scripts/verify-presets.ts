@@ -38,7 +38,7 @@ const clips: Clip[] = [
   {
     name: 'hlg_10bit_vertical.mov',
     args: ['-f', 'lavfi', '-i', 'testsrc2=size=2160x3840:rate=30:duration=2',
-      '-vf', 'format=yuv420p10le', '-c:v', 'libx265', '-preset', 'ultrafast', '-x265-params', 'log-level=error',
+      '-vf', 'format=yuv420p10le,setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc', '-c:v', 'libx265', '-preset', 'ultrafast', '-x265-params', 'log-level=error',
       '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67', '-colorspace', 'bt2020nc', '-tag:v', 'hvc1'],
   },
   {
