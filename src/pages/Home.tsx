@@ -7,7 +7,9 @@ export default function Home() {
       <section className="hero home-hero">
         <div className="home-hero-copy">
           <p className="eyebrow">Nova · video optimizer</p>
-          <h1>Post the quality you filmed.</h1>
+          <h1>
+            Post the <span className="grad">quality you filmed.</span>
+          </h1>
           <p className="lede">
             Every platform re-compresses your upload on the way in. Nova hands TikTok, Instagram and Facebook a
             file built to their exact spec, so the least possible quality is lost. It runs entirely in your
@@ -72,7 +74,9 @@ export default function Home() {
       </section>
 
       <section className="cta-band">
-        <h2>Your next post, in full quality.</h2>
+        <h2>
+          Your next post, <span className="grad">in full quality.</span>
+        </h2>
         <p className="muted">Optimize a clip, then prove it survived with the check. Both free.</p>
         <div className="actions actions-center">
           <button type="button" className="btn btn-primary" onClick={() => navigate('/optimize')}>

@@ -648,3 +648,106 @@ pre.alert { font-size: 0.85rem; font-family: ui-monospace, SFMono-Regular, Menlo
   padding: 1px 8px;
   vertical-align: middle;
 }
+
+/* =====================================================================
+   Visual polish pass. Overrides tuned for depth, rhythm and motion,
+   kept inside the existing brand tokens.
+   ===================================================================== */
+
+:root { --radius-lg: 20px; }
+
+/* Richer ambient background: a slow aurora over the star field. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 32% at 18% 12%, rgba(122, 107, 255, 0.16), transparent 70%),
+    radial-gradient(38% 30% at 85% 22%, rgba(255, 138, 61, 0.1), transparent 70%);
+  filter: blur(8px);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to { transform: translate3d(3%, 2%, 0) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; }
+}
+
+/* Gradient accent for headline words. */
+.grad {
+  background: linear-gradient(100deg, var(--accent) 0%, var(--accent-light) 45%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Display headings: a touch more presence. */
+.hero h1, .guide-title { letter-spacing: -0.02em; line-height: 1.0; }
+.hero h1 { font-size: clamp(2.8rem, 6.8vw, 5rem); }
+.band > h2, .cta-band h2 { letter-spacing: -0.015em; }
+.lede { font-size: 1.12rem; line-height: 1.6; }
+.eyebrow { font-size: 0.74rem; letter-spacing: 0.34em; }
+
+/* Panels and cards: softer corners, real depth, a lit top edge. */
+.panel {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 0 rgba(233, 230, 255, 0.04) inset, 0 24px 60px -40px rgba(0, 0, 0, 0.9);
+}
+.feature-card, .guide-card, .pack-card {
+  border-radius: var(--radius-lg);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  will-change: transform;
+}
+.feature-card { background: linear-gradient(180deg, rgba(13, 14, 22, 0.9), rgba(7, 8, 13, 0.9)); }
+.feature-card:hover, .guide-card:hover, .pack-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
+  box-shadow: 0 20px 50px -30px rgba(122, 107, 255, 0.5);
+}
+
+/* Buttons: gradient primary with a soft glow, tactile hover. */
+.btn { border-radius: 999px; transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: var(--on-accent);
+  border-color: transparent;
+  box-shadow: 0 10px 30px -12px rgba(255, 138, 61, 0.6);
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 14px 36px -12px rgba(255, 138, 61, 0.7); }
+
+/* Section rhythm: more air between bands. */
+.band { padding: 60px 0 10px; }
+.band > h2 { margin-bottom: 30px; }
+.hero { padding-top: 48px; }
+.cta-band { border-radius: var(--radius-lg); padding: 52px 24px; }
+
+/* Three-step cards: lift the number into an accent chip. */
+.step3 { border-top: 0; position: relative; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.step3-n {
+  display: inline-grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 9px;
+  background: rgba(255, 138, 61, 0.12);
+  color: var(--accent); font-size: 0.82rem; margin-bottom: 4px;
+}
+
+/* Compare slider: deeper frame, brighter handle. */
+.compare-stage { border-radius: var(--radius-lg); box-shadow: 0 30px 70px -40px rgba(122, 107, 255, 0.5); }
+.compare-grip { background: linear-gradient(135deg, var(--accent), var(--accent-light)); color: var(--on-accent); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6); }
+.compare-handle { width: 3px; background: linear-gradient(var(--accent-light), var(--accent)); }
+
+/* Check readout: make the numbers the hero. */
+.big { border-radius: 14px; background: linear-gradient(180deg, var(--surface-2), rgba(7, 8, 13, 0.6)); border: 1px solid var(--line); }
+.big-v { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; }
+
+/* FAQ: gentle hover affordance. */
+.faq-q { transition: color 0.14s ease; }
+.faq-q:hover { color: var(--accent-light); }
+.faq-item.is-open .faq-q { color: var(--text); }
+
+/* Nav: clearer active state. */
+.nav-link { transition: color 0.14s ease, background 0.14s ease; }
+.nav-link.is-on { background: linear-gradient(135deg, rgba(255,138,61,0.16), rgba(122,107,255,0.16)); }
