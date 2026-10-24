@@ -25,6 +25,43 @@ The settings come from the phase 1 research report. They have been checked again
 platform's published spec with real ffmpeg, but **not yet measured on real uploads**. That's
 the next step.
 
+## Test pack
+
+Switch step 2 to **Test pack** to export one short clip up to ten ways for one platform. Each
+version changes one thing from the baseline, and its letter is in the file name:
+
+| | Version | Question it answers |
+| --- | --- | --- |
+| A | Baseline | Nova's standard preset (CRF 17, platform bitrate cap) |
+| B | Max quality | Does CRF 12 survive better, or is it thrown away? |
+| C | Lean | Is a half-bitrate file treated the same? |
+| D | Constant bitrate | Does high CBR beat variable bitrate? |
+| E | 1440p | Does a bigger upload get a sharper encode ladder? |
+| F | Pre-sharpened + grain | Does sharpening and grain survive the platform's scaler? |
+| G | Denoised + dark detail | Does removing noise free bits for real detail? |
+| H | HEVC (H.265) | Does HEVC change what the platform serves? |
+| I | 4K (TikTok only) | Does TikTok serve 4K uploads sharper? |
+| J | 30 fps (60 fps sources only) | Is 60 fps better posted at 30, with twice the bits per frame? |
+
+**Download all** gives a zip with every file, `results.csv` (with blank columns for the
+link, a 1 to 5 score and notes) and a `README.txt` with the posting steps. Test packs are
+limited to 60 seconds; 10-second clips are ideal.
+
+## Content profiles
+
+"What's in this clip?" sets the clean-up filters for footage that predictably breaks after
+upload, and shows what to fix before export. The full text is in `src/lib/profiles.ts`.
+
+| Profile | What goes wrong | What Nova does |
+| --- | --- | --- |
+| Low light / grainy | Noise eats the bitrate and turns to mush | Denoise + dark detail (`aq-mode=3`) |
+| Fast motion / sports | Pans and action smear and block | CRF 15, keep up to 60 fps |
+| Busy detail | Leaves, water, confetti go soft or shimmer | CRF 15, no denoise |
+| Skies & gradients | Banding stripes in 8-bit | Fine grain + dark detail |
+| Dark / moody grade | Blocky shadows, flat crushed blacks | Dark detail + fine grain |
+| Text, graphics, screens | Soft edges, fuzzy colored text | Light sharpen |
+| Talking head / skin | Harsh or waxy skin | No sharpening, dark detail |
+
 ## Develop
 
 ```bash

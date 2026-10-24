@@ -14,12 +14,24 @@ import {
 } from './lib/presets'
 import { CosmosMark } from './CosmosMark'
 import { formatBytes, formatDuration, formatFps } from './lib/format'
+import { PROFILES, getProfile, type ProfileId } from './lib/profiles'
+import {
+  applicableVariants,
+  buildReadme,
+  buildSheet,
+  describeSettings,
+  type SheetRow,
+} from './lib/testpack'
 
 const MAX_BYTES = 500 * 1024 * 1024
 const MAX_SECONDS = 180
+// A test pack encodes the clip up to ten times, so keep it short.
+const PACK_MAX_SECONDS = 60
 const BRAND_URL = 'https://creationofcosmos.com/'
 
 type Settings = Omit<EncodeOptions, 'platform'>
+
+type Mode = 'optimize' | 'pack'
 
 interface Result {
   platform: PlatformId
@@ -28,9 +40,16 @@ interface Result {
   name: string
 }
 
+interface PackResult extends Result {
+  code: string
+  variantName: string
+  question: string
+  settings: string
+}
+
 type Job =
   | { state: 'idle' }
-  | { state: 'running'; platform: PlatformId; index: number; total: number; fraction: number; speed: number | null; startedAt: number }
+  | { state: 'running'; label: string; index: number; total: number; fraction: number; speed: number | null; startedAt: number }
   | { state: 'done' }
   | { state: 'error'; message: string }
 
@@ -46,6 +65,11 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_OPTIONS)
   const [job, setJob] = useState<Job>({ state: 'idle' })
   const [results, setResults] = useState<Result[]>([])
+  const [mode, setMode] = useState<Mode>('optimize')
+  const [profile, setProfile] = useState<ProfileId>('general')
+  const [packPlatform, setPackPlatform] = useState<PlatformId>('tiktok')
+  const [packOff, setPackOff] = useState<string[]>([])
+  const [packResults, setPackResults] = useState<PackResult[]>([])
   const cancelled = useRef(false)
 
   // Start fetching the engine early so it's warm by the time a file is chosen.
@@ -62,7 +86,16 @@ export default function App() {
       prev.forEach((r) => URL.revokeObjectURL(r.url))
       return []
     })
+    setPackResults((prev) => {
+      prev.forEach((r) => URL.revokeObjectURL(r.url))
+      return []
+    })
   }, [])
+
+  const chooseProfile = (id: ProfileId) => {
+    setProfile(id)
+    setSettings((s) => ({ ...s, ...getProfile(id).settings }))
+  }
 
   const chooseFile = useCallback(
     async (f: File) => {
@@ -102,13 +135,52 @@ export default function App() {
     try {
       for (let i = 0; i < order.length; i++) {
         const platform = order[i]
-        setJob({ state: 'running', platform, index: i, total: order.length, fraction: 0, speed: null, startedAt: Date.now() })
+        setJob({ state: 'running', label: getPlatform(platform).label, index: i, total: order.length, fraction: 0, speed: null, startedAt: Date.now() })
         const blob = await engine.encode(file, source, { ...settings, platform }, (fraction, speed) =>
           setJob((j) => (j.state === 'running' ? { ...j, fraction, speed: speed ?? j.speed } : j)),
         )
         if (cancelled.current) return
         const result = { platform, blob, url: URL.createObjectURL(blob), name: outputFileName(file.name, platform) }
         setResults((prev) => [...prev, result])
+      }
+      setJob({ state: 'done' })
+    } catch (e) {
+      if (cancelled.current) return
+      setJob({ state: 'error', message: e instanceof Error ? e.message : String(e) })
+    }
+  }
+
+  const packList = source ? applicableVariants(source, packPlatform) : []
+  const packToRun = packList.filter((v) => !v.skipped && !packOff.includes(v.variant.code)).map((v) => v.variant)
+  const packTooLong = source !== null && source.durationSec > PACK_MAX_SECONDS + 0.5
+
+  const startPack = async () => {
+    if (!file || !source || packToRun.length === 0 || packTooLong) return
+    clearResults()
+    cancelled.current = false
+    try {
+      for (let i = 0; i < packToRun.length; i++) {
+        const v = packToRun[i]
+        const opts: EncodeOptions = { ...settings, ...v.overrides, platform: packPlatform }
+        setJob({ state: 'running', label: `${v.code} · ${v.name}`, index: i, total: packToRun.length, fraction: 0, speed: null, startedAt: Date.now() })
+        const blob = await engine.encode(file, source, opts, (fraction, speed) =>
+          setJob((j) => (j.state === 'running' ? { ...j, fraction, speed: speed ?? j.speed } : j)),
+        )
+        if (cancelled.current) return
+        const slug = v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        setPackResults((prev) => [
+          ...prev,
+          {
+            platform: packPlatform,
+            blob,
+            url: URL.createObjectURL(blob),
+            name: outputFileName(file.name, packPlatform, `${v.code}-${slug}`),
+            code: v.code,
+            variantName: v.name,
+            question: v.question,
+            settings: describeSettings(source, opts),
+          },
+        ])
       }
       setJob({ state: 'done' })
     } catch (e) {
@@ -163,9 +235,26 @@ export default function App() {
 
         <section className={`panel ${source ? '' : 'is-disabled'}`} aria-labelledby="step-2">
           <StepTitle n={2} id="step-2">Pick where it’s going</StepTitle>
+          <div className="mode-row">
+            <Segmented<Mode>
+              label="Mode"
+              value={mode}
+              disabled={running}
+              onChange={(m) => {
+                setMode(m)
+                setJob({ state: 'idle' })
+                // Ten full encodes add up; Fast keeps a 10-second pack to several minutes.
+                if (m === 'pack') setSettings((s) => ({ ...s, speed: 'fast' }))
+              }}
+              options={[
+                { value: 'optimize', label: 'Optimize', hint: 'One best file per platform' },
+                { value: 'pack', label: 'Test pack', hint: 'Up to 10 versions for one platform, to find what survives best' },
+              ]}
+            />
+          </div>
           <div className="platforms" role="group" aria-label="Platforms">
             {PLATFORMS.map((p) => {
-              const on = selected.includes(p.id)
+              const on = mode === 'pack' ? packPlatform === p.id : selected.includes(p.id)
               return (
                 <button
                   key={p.id}
@@ -174,7 +263,9 @@ export default function App() {
                   aria-pressed={on}
                   disabled={running}
                   onClick={() =>
-                    setSelected((s) => (on ? s.filter((x) => x !== p.id) : [...s, p.id]))
+                    mode === 'pack'
+                      ? setPackPlatform(p.id)
+                      : setSelected((s) => (on ? s.filter((x) => x !== p.id) : [...s, p.id]))
                   }
                 >
                   <span className="platform-name">{p.label}</span>
@@ -183,6 +274,61 @@ export default function App() {
               )
             })}
           </div>
+
+          <div className="profile-block">
+            <span className="field-label">What’s in this clip?</span>
+            <div className="chips" role="radiogroup" aria-label="Content type">
+              {PROFILES.map((pr) => (
+                <button
+                  key={pr.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={profile === pr.id}
+                  className={`chip ${profile === pr.id ? 'is-on' : ''}`}
+                  disabled={running}
+                  onClick={() => chooseProfile(pr.id)}
+                >
+                  {pr.label}
+                </button>
+              ))}
+            </div>
+            <ProfileAdvice id={profile} />
+          </div>
+
+          {mode === 'pack' && source && (
+            <fieldset className="variants" disabled={running}>
+              <legend>Versions to export</legend>
+              <p className="muted small">
+                Each version is a full encode. A 10-second clip takes about 5 to 10 minutes for all of them
+                on a laptop, longer for 4K and HEVC.
+              </p>
+              {packTooLong && (
+                <p className="alert small">
+                  Test packs are limited to {PACK_MAX_SECONDS} seconds because every version is a full encode.
+                  Trim a 10-second section that shows the hardest part of your footage.
+                </p>
+              )}
+              {packList.map(({ variant, skipped }) => (
+                <label key={variant.code} className={`variant ${skipped ? 'is-skipped' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={!skipped && !packOff.includes(variant.code)}
+                    disabled={!!skipped}
+                    onChange={(e) =>
+                      setPackOff((off) =>
+                        e.target.checked ? off.filter((c) => c !== variant.code) : [...off, variant.code],
+                      )
+                    }
+                  />
+                  <span className="variant-code">{variant.code}</span>
+                  <span className="variant-text">
+                    <span className="variant-name">{variant.name}</span>
+                    <span className="muted small">{skipped ?? variant.question}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          )}
 
           <div className="settings">
             <Segmented<FitMode>
@@ -251,6 +397,12 @@ export default function App() {
               title="Light sharpen"
               hint="Helps text and slightly soft footage survive the platform’s scaler."
             />
+            <Toggle
+              checked={settings.darkDetail}
+              onChange={(darkDetail) => setSettings({ ...settings, darkDetail })}
+              title="Protect dark detail"
+              hint="Spends more bits in shadows and flat areas, where blocking shows up first."
+            />
           </fieldset>
 
           <div className="actions">
@@ -259,14 +411,25 @@ export default function App() {
                 Cancel
               </button>
             ) : (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={!source || selected.length === 0 || engineState === 'error'}
-                onClick={start}
-              >
-                {selected.length > 1 ? `Optimize for ${selected.length} platforms` : 'Optimize video'}
-              </button>
+              mode === 'pack' ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!source || packToRun.length === 0 || packTooLong || engineState === 'error'}
+                  onClick={startPack}
+                >
+                  {`Export ${packToRun.length} test versions`}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!source || selected.length === 0 || engineState === 'error'}
+                  onClick={start}
+                >
+                  {selected.length > 1 ? `Optimize for ${selected.length} platforms` : 'Optimize video'}
+                </button>
+              )
             )}
             <EngineStatus state={engineState} />
           </div>
@@ -274,6 +437,13 @@ export default function App() {
           {job.state === 'running' && <Progress job={job} />}
           {job.state === 'error' && <pre className="alert">{job.message}</pre>}
         </section>
+
+        {packResults.length > 0 && file && (
+          <section className="panel" aria-labelledby="step-3p">
+            <StepTitle n={3} id="step-3p">Post every version and compare</StepTitle>
+            <PackResults results={packResults} clipName={file.name} platform={packPlatform} durationSec={source?.durationSec ?? 0} />
+          </section>
+        )}
 
         {results.length > 0 && (
           <section className="panel" aria-labelledby="step-3">
@@ -478,7 +648,7 @@ function Progress({ job }: { job: Extract<Job, { state: 'running' }> }) {
     <div className="progress" role="status">
       <div className="progress-head">
         <span>
-          {getPlatform(job.platform).label}
+          {job.label}
           {job.total > 1 && <span className="muted"> · {job.index + 1} of {job.total}</span>}
         </span>
         <span className="muted">
@@ -523,4 +693,105 @@ function ResultCard({ result, source }: { result: Result; source: SourceInfo }) 
       </div>
     </article>
   )
+}
+
+function ProfileAdvice({ id }: { id: ProfileId }) {
+  const p = getProfile(id)
+  return (
+    <div className="advice">
+      <p>
+        <strong>Watch out for:</strong> {p.risk}
+      </p>
+      <p>
+        <strong>Nova will:</strong> {p.fix}
+      </p>
+      <ul>
+        {p.tips.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function PackResults({
+  results,
+  clipName,
+  platform,
+  durationSec,
+}: {
+  results: PackResult[]
+  clipName: string
+  platform: PlatformId
+  durationSec: number
+}) {
+  const rows: SheetRow[] = results.map((r) => ({
+    code: r.code,
+    name: r.variantName,
+    file: r.name,
+    settings: r.settings,
+    sizeBytes: r.blob.size,
+    mbps: durationSec > 0 ? (r.blob.size * 8) / durationSec / 1e6 : null,
+  }))
+  const base = clipName.replace(/\.[^.]+$/, '') || 'video'
+
+  const downloadZip = async () => {
+    const { zipSync } = await import('fflate')
+    const entries: Record<string, [Uint8Array, { level: 0 }]> = {}
+    for (const r of results) entries[r.name] = [new Uint8Array(await r.blob.arrayBuffer()), { level: 0 }]
+    const enc = new TextEncoder()
+    entries['results.csv'] = [enc.encode(buildSheet(rows)), { level: 0 }]
+    entries['README.txt'] = [enc.encode(buildReadme(clipName, platform, rows)), { level: 0 }]
+    const zip = zipSync(entries)
+    saveBlob(new Blob([zip as BlobPart], { type: 'application/zip' }), `${base}_${platform}_test-pack.zip`)
+  }
+
+  return (
+    <>
+      <p className="muted">
+        Post all {results.length} to the same test account, then score each one in the results sheet. The
+        variant letter is in every file name, so you can tell them apart after posting.
+      </p>
+      <div className="actions">
+        <button type="button" className="btn btn-primary" onClick={downloadZip}>
+          Download all + results sheet (.zip)
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => saveBlob(new Blob([buildSheet(rows)], { type: 'text/csv' }), `${base}_${platform}_results.csv`)}
+        >
+          Results sheet only (.csv)
+        </button>
+      </div>
+      <div className="pack-grid">
+        {results.map((r, i) => (
+          <article key={r.code} className="pack-card">
+            <div className="pack-head">
+              <span className="variant-code">{r.code}</span>
+              <span className="variant-name">{r.variantName}</span>
+            </div>
+            <p className="muted small">{r.question}</p>
+            <p className="small">{r.settings}</p>
+            <p className="muted small">
+              {formatBytes(r.blob.size)}
+              {rows[i].mbps !== null && ` · ${rows[i].mbps!.toFixed(1)} Mbps`}
+            </p>
+            <a className="btn btn-secondary btn-small" href={r.url} download={r.name}>
+              Download {r.code}
+            </a>
+          </article>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function saveBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
