@@ -24,6 +24,7 @@ export class Engine {
   /** Set after the multi-threaded core fails once; everything after runs single-threaded. */
   private forceSingleThread = import.meta.env.VITE_FFMPEG_SINGLE_THREAD === '1'
   private logListener: ((line: string) => void) | null = null
+  private progressListener: ((timeMicros: number) => void) | null = null
   private cancelled = false
 
   load(): Promise<void> {
@@ -37,6 +38,7 @@ export class Engine {
   private async doLoad() {
     const ffmpeg = new FFmpeg()
     ffmpeg.on('log', ({ message }) => this.logListener?.(message))
+    ffmpeg.on('progress', ({ time }) => this.progressListener?.(time))
     // The multi-threaded core needs SharedArrayBuffer, which needs cross-origin isolation.
     const mt = globalThis.crossOriginIsolated === true && !this.forceSingleThread
     const pkg = mt ? 'core-mt' : 'core'
@@ -108,8 +110,9 @@ export class Engine {
   }
 
   /**
-   * Progress is derived from ffmpeg's "time=" log lines, which is more reliable
-   * than the core's own progress event for filtered output.
+   * ffmpeg's "time=" stats lines end in a carriage return, so the wasm logger
+   * only flushes them when the encode ends. Progress comes from the core's own
+   * progress event instead, which reports encoded time in microseconds.
    */
   private encodeOnce(
     file: File,
@@ -123,12 +126,13 @@ export class Engine {
       this.logListener = (line) => {
         tail.push(line)
         if (tail.length > 30) tail.shift()
-        const t = line.match(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/)
-        if (t && src.durationSec > 0) {
-          const sec = Number(t[1]) * 3600 + Number(t[2]) * 60 + Number(t[3])
-          const speed = line.match(/speed=\s*([\d.]+)x/)
-          onProgress(Math.min(1, sec / src.durationSec), speed ? Number(speed[1]) : null)
-        }
+      }
+      const startedAt = performance.now()
+      this.progressListener = (timeMicros) => {
+        const sec = timeMicros / 1e6
+        if (!(sec > 0) || src.durationSec <= 0) return
+        const wall = (performance.now() - startedAt) / 1000
+        onProgress(Math.min(1, sec / src.durationSec), wall > 0 ? sec / wall : null)
       }
       try {
         const args = buildFfmpegArgs(src, opts, path, OUT_FILE)
@@ -148,6 +152,7 @@ export class Engine {
         return new Blob([data as BlobPart], { type: 'video/mp4' })
       } finally {
         this.logListener = null
+        this.progressListener = null
       }
     })
   }
