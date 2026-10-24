@@ -99,3 +99,30 @@ describe('outputFileName', () => {
     expect(outputFileName('My Clip.final.MOV', 'tiktok')).toBe('My Clip.final_tiktok.mp4')
   })
 })
+
+describe('variant options', () => {
+  it('raises the H.264 level for 1440p and 4K', () => {
+    const args = (scale: number) => buildFfmpegArgs(sdr, { ...DEFAULT_OPTIONS, platform: 'tiktok', resolutionScale: scale }, 'i', 'o')
+    expect(args(1)[args(1).indexOf('-level:v') + 1]).toBe('4.2')
+    expect(args(4 / 3)[args(4 / 3).indexOf('-level:v') + 1]).toBe('5.1')
+    expect(args(2)[args(2).indexOf('-level:v') + 1]).toBe('5.2')
+    expect(args(2).join(' ')).toContain('scale=2160:3840')
+  })
+  it('builds constant bitrate at the platform ceiling', () => {
+    const args = buildFfmpegArgs(sdr, { ...DEFAULT_OPTIONS, platform: 'instagram', rateControl: 'cbr' }, 'i', 'o').join(' ')
+    expect(args).toContain('-b:v 20000k -minrate 20000k -maxrate 20000k')
+    expect(args).not.toContain('-crf')
+  })
+  it('encodes HEVC with a closed GOP and the hvc1 tag', () => {
+    const args = buildFfmpegArgs(sdr, { ...DEFAULT_OPTIONS, platform: 'tiktok', codec: 'hevc', darkDetail: true }, 'i', 'o').join(' ')
+    expect(args).toContain('-c:v libx265')
+    expect(args).toContain('open-gop=0')
+    expect(args).toContain('aq-mode=3')
+    expect(args).toContain('-tag:v hvc1')
+  })
+  it('halves 59.94 to 29.97 when capped at 30 fps', () => {
+    const args = buildFfmpegArgs({ ...sdr, frameRate: { num: 60000, den: 1001 } }, { ...DEFAULT_OPTIONS, platform: 'tiktok', maxFps: 30 }, 'i', 'o')
+    expect(args.join(' ')).toContain('fps=30000/1001')
+    expect(args[args.indexOf('-g') + 1]).toBe('60')
+  })
+})

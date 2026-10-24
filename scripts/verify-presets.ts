@@ -7,8 +7,12 @@ import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseProbe, type ProbeJson } from '../src/lib/probe.ts'
+import { applicableVariants } from '../src/lib/testpack.ts'
+import { PROFILES } from '../src/lib/profiles.ts'
 import {
   buildFfmpegArgs,
+  outputFrameRate,
+  outputSize,
   DEFAULT_OPTIONS,
   PLATFORMS,
   targetFrameRate,
@@ -26,6 +30,8 @@ interface Clip {
   name: string
   args: string[]
   rotate?: number
+  /** Also run every test-pack variant and content profile on this clip. */
+  pack?: boolean
 }
 
 const clips: Clip[] = [
@@ -34,6 +40,7 @@ const clips: Clip[] = [
     args: ['-f', 'lavfi', '-i', 'testsrc2=size=3840x2160:rate=60:duration=2',
       '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=2',
       '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest'],
+    pack: true,
   },
   {
     name: 'hlg_10bit_vertical.mov',
@@ -115,6 +122,32 @@ try {
         check(statSync(output).size < platform.maxBytes, `${label} size limit`)
         check(moovBeforeMdat(output), `${label} moov atom not first (faststart)`)
         console.log(`${label}: ok ${v.width}x${v.height} ${v.avg_frame_rate} ${(statSync(output).size / 1024).toFixed(0)} KB`)
+      }
+    }
+
+    // Every test-pack variant (and content profile) must also produce a valid file.
+    if (!clip.pack) continue
+    for (const platform of ['tiktok', 'instagram'] as const) {
+      const runs = [
+        ...applicableVariants(src, platform)
+          .filter((x) => !x.skipped)
+          .map((x) => ({ label: `pack ${platform}/${x.variant.code} ${x.variant.name}`, overrides: x.variant.overrides })),
+        ...(platform === 'tiktok' ? PROFILES.map((pr) => ({ label: `profile ${pr.id}`, overrides: pr.settings })) : []),
+      ]
+      for (const r of runs) {
+        const opts: EncodeOptions = { ...DEFAULT_OPTIONS, ...r.overrides, platform, speed: 'fast' }
+        const output = join(dir, 'pack.mp4')
+        run('ffmpeg', ['-loglevel', 'error', ...buildFfmpegArgs(src, opts, input, output)])
+        const v = probe(output).streams!.find((x) => x.codec_type === 'video')!
+        const size = outputSize(opts)
+        const fps = outputFrameRate(src, opts)
+        const label = `  ${r.label}`
+        check(v.codec_name === (opts.codec === 'hevc' ? 'hevc' : 'h264'), `${label} codec ${v.codec_name}`)
+        check(v.width === size.width && v.height === size.height, `${label} size ${v.width}x${v.height}`)
+        check(v.avg_frame_rate === `${fps.num}/${fps.den}`, `${label} fps ${v.avg_frame_rate}`)
+        check(v.color_transfer === 'bt709' && v.color_primaries === 'bt709', `${label} color ${v.color_primaries}/${v.color_transfer}`)
+        check(moovBeforeMdat(output), `${label} faststart`)
+        console.log(`${label}: ok ${v.codec_name} ${v.width}x${v.height} ${v.avg_frame_rate} ${(statSync(output).size / 1024).toFixed(0)} KB`)
       }
     }
   }
