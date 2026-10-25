@@ -96,6 +96,9 @@ export function getPlatform(id: PlatformId): Platform {
   return p
 }
 
+export type Codec = 'h264' | 'hevc'
+export type RateControl = 'crf' | 'cbr'
+
 export interface EncodeOptions {
   platform: PlatformId
   fit: FitMode
@@ -107,7 +110,20 @@ export interface EncodeOptions {
   denoise: boolean
   deband: boolean
   sharpen: boolean
+  /** x264/x265 aq-mode 3: spends more bits in dark, flat areas where blocking shows first. */
+  darkDetail: boolean
+  codec: Codec
+  /** Output size relative to the platform's 1080p frame (4/3 → 1440p, 2 → 4K). */
+  resolutionScale: number
+  crf: number
+  rateControl: RateControl
+  /** Fraction of the platform's bitrate ceiling to cap at (or to target, for CBR). */
+  bitrateCap: number
+  /** Optional frame rate ceiling, e.g. 30 to test 60 fps footage at 30. */
+  maxFps: number | null
 }
+
+export const CRF = 17
 
 export const DEFAULT_OPTIONS: Omit<EncodeOptions, 'platform'> = {
   fit: 'fit',
@@ -117,6 +133,13 @@ export const DEFAULT_OPTIONS: Omit<EncodeOptions, 'platform'> = {
   denoise: false,
   deband: false,
   sharpen: false,
+  darkDetail: false,
+  codec: 'h264',
+  resolutionScale: 1,
+  crf: CRF,
+  rateControl: 'crf',
+  bitrateCap: 1,
+  maxFps: null,
 }
 
 const X264_PRESET: Record<Speed, string> = {
@@ -125,7 +148,12 @@ const X264_PRESET: Record<Speed, string> = {
   best: 'slow',
 }
 
-export const CRF = 17
+// x265 is several times slower than x264, especially in WebAssembly.
+const X265_PRESET: Record<Speed, string> = {
+  fast: 'ultrafast',
+  balanced: 'fast',
+  best: 'medium',
+}
 
 export interface Rational {
   num: number
@@ -180,10 +208,26 @@ export function rateToString(r: Rational): string {
   return r.den === 1 ? String(r.num) : `${r.num}/${r.den}`
 }
 
-export function buildFilterGraph(src: SourceInfo, opts: EncodeOptions): string {
+/** Output frame size: the platform frame, optionally scaled up, kept even. */
+export function outputSize(opts: EncodeOptions): { width: number; height: number } {
   const p = getPlatform(opts.platform)
-  const { width: W, height: H } = p
+  const even = (n: number) => Math.round(n / 2) * 2
+  return { width: even(p.width * opts.resolutionScale), height: even(p.height * opts.resolutionScale) }
+}
+
+export function outputFrameRate(src: SourceInfo, opts: EncodeOptions): Rational {
   const fps = targetFrameRate(src.frameRate)
+  if (opts.maxFps && fps.num / fps.den > opts.maxFps + 0.5) {
+    // 59.94 → 29.97, 60 → 30: halve so every other frame is kept cleanly.
+    const half = normalizeRate({ num: fps.num, den: fps.den * 2 })
+    return half.num / half.den <= opts.maxFps + 0.5 ? half : { num: opts.maxFps, den: 1 }
+  }
+  return fps
+}
+
+export function buildFilterGraph(src: SourceInfo, opts: EncodeOptions): string {
+  const { width: W, height: H } = outputSize(opts)
+  const fps = outputFrameRate(src, opts)
   const filters: string[] = []
   const aspect = opts.fit === 'fill' ? 'increase' : 'decrease'
   const hdr = src.hdr !== null && opts.toneMap
@@ -223,6 +267,14 @@ export function buildFilterGraph(src: SourceInfo, opts: EncodeOptions): string {
   return filters.join(',')
 }
 
+/** H.264 level that covers the frame size and rate (4.2 for 1080p60, 5.1/5.2 above). */
+function h264Level(width: number, height: number, fps: number): string {
+  const mbps = Math.ceil(width / 16) * Math.ceil(height / 16) * fps
+  if (mbps <= 522_240) return '4.2'
+  if (mbps <= 983_040) return '5.1'
+  return '5.2'
+}
+
 export function buildFfmpegArgs(
   src: SourceInfo,
   opts: EncodeOptions,
@@ -230,9 +282,12 @@ export function buildFfmpegArgs(
   output: string,
 ): string[] {
   const p = getPlatform(opts.platform)
-  const fps = targetFrameRate(src.frameRate)
-  const gop = Math.max(1, Math.round((2 * fps.num) / fps.den))
+  const fps = outputFrameRate(src, opts)
+  const fpsNum = fps.num / fps.den
+  const gop = Math.max(1, Math.round(2 * fpsNum))
+  const { width, height } = outputSize(opts)
   const kbps = (bps: number) => `${Math.round(bps / 1000)}k`
+  const cap = p.maxrate * opts.bitrateCap
 
   const args = [
     '-hide_banner',
@@ -240,18 +295,39 @@ export function buildFfmpegArgs(
     '-map', '0:v:0',
   ]
   if (src.hasAudio) args.push('-map', '0:a:0')
+  args.push('-vf', buildFilterGraph(src, opts))
+
+  const rate =
+    opts.rateControl === 'cbr'
+      ? ['-b:v', kbps(cap), '-minrate', kbps(cap), '-maxrate', kbps(cap), '-bufsize', kbps(cap)]
+      : ['-crf', String(opts.crf), '-maxrate', kbps(cap), '-bufsize', kbps(cap * 2)]
+
+  if (opts.codec === 'hevc') {
+    const params = ['log-level=error', `keyint=${gop}`, `min-keyint=${gop}`, 'open-gop=0', 'bframes=2']
+    if (opts.darkDetail) params.push('aq-mode=3')
+    args.push(
+      '-c:v', 'libx265',
+      '-preset', X265_PRESET[opts.speed],
+      '-profile:v', 'main',
+      ...rate,
+      '-x265-params', params.join(':'),
+      // Apple and Meta players expect the hvc1 tag for HEVC in MP4.
+      '-tag:v', 'hvc1',
+    )
+  } else {
+    args.push(
+      '-c:v', 'libx264',
+      '-preset', X264_PRESET[opts.speed],
+      '-profile:v', 'high',
+      '-level:v', h264Level(width, height, fpsNum),
+      ...rate,
+      '-g', String(gop),
+      '-bf', '2',
+      '-flags', '+cgop',
+    )
+    if (opts.darkDetail) args.push('-x264-params', 'aq-mode=3')
+  }
   args.push(
-    '-vf', buildFilterGraph(src, opts),
-    '-c:v', 'libx264',
-    '-preset', X264_PRESET[opts.speed],
-    '-profile:v', 'high',
-    '-level:v', '4.2',
-    '-crf', String(CRF),
-    '-maxrate', kbps(p.maxrate),
-    '-bufsize', kbps(p.maxrate * 2),
-    '-g', String(gop),
-    '-bf', '2',
-    '-flags', '+cgop',
     '-pix_fmt', 'yuv420p',
     '-colorspace', 'bt709',
     '-color_primaries', 'bt709',
@@ -278,7 +354,7 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n))
 }
 
-export function outputFileName(inputName: string, platform: PlatformId): string {
+export function outputFileName(inputName: string, platform: PlatformId, suffix?: string): string {
   const base = inputName.replace(/\.[^.]+$/, '') || 'video'
-  return `${base}_${platform}.mp4`
+  return `${base}_${platform}${suffix ? `_${suffix}` : ''}.mp4`
 }
