@@ -19,7 +19,7 @@ export default function App() {
   const page = route === '/' ? 'home' : route.split('/')[1]
 
   return (
-    <div className="page">
+    <div className="app">
       <Starfield />
       <header className="topbar">
         <button type="button" className="brand" aria-label="Nova home" onClick={() => navigate('/')}>
@@ -31,10 +31,10 @@ export default function App() {
             <button
               key={n.to}
               type="button"
-              className={`nav-link ${page === n.to.slice(1) ? 'is-on' : ''}`}
+              className={`nav-link nav-star ${page === n.to.slice(1) ? 'is-on' : ''}`}
               onClick={() => navigate(n.to)}
             >
-              {n.label}
+              <span>{n.label}</span>
             </button>
           ))}
           <a className="byline" href={BRAND_URL} target="_blank" rel="noreferrer">
@@ -43,23 +43,25 @@ export default function App() {
         </nav>
       </header>
 
-      <main>
-        {page === 'home' && <Home />}
-        {page === 'optimize' && <Optimize />}
-        {page === 'check' && <Check />}
-        {page === 'guides' && <Guides />}
-      </main>
+      <div className="page">
+        <main>
+          {page === 'home' && <Home />}
+          {page === 'optimize' && <Optimize />}
+          {page === 'check' && <Check />}
+          {page === 'guides' && <Guides />}
+        </main>
 
-      <footer className="footer">
-        <CosmosMark className="footer-mark" />
-        <span>
-          Nova is made by{' '}
-          <a href={BRAND_URL} target="_blank" rel="noreferrer">
-            Creation of Cosmos
-          </a>
-          , a video editing studio in Makati.
-        </span>
-      </footer>
+        <footer className="footer">
+          <CosmosMark className="footer-mark" />
+          <span>
+            Nova is made by{' '}
+            <a href={BRAND_URL} target="_blank" rel="noreferrer">
+              Creation of Cosmos
+            </a>
+            , a video editing studio in Makati.
+          </span>
+        </footer>
+      </div>
     </div>
   )
 }
