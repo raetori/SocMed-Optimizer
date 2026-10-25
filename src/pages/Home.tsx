@@ -6,7 +6,8 @@ export default function Home() {
     <>
       <section className="hero home-hero">
         <div className="home-hero-copy">
-          <p className="eyebrow">Nova · video optimizer</p>
+          <p className="eyebrow">Creation of Cosmos</p>
+          <p className="hero-wide">Nova</p>
           <h1>
             Post the <span className="grad">quality you filmed.</span>
           </h1>
@@ -32,9 +33,9 @@ export default function Home() {
         <p className="eyebrow">Three steps</p>
         <h2>From export to post.</h2>
         <div className="steps3">
-          <Step3 n="01" title="Drop your clip" body="Any editor, any export. Up to 4K at 120 fps, up to 500 MB." />
-          <Step3 n="02" title="Nova rebuilds it" body="Scaled, colour-tagged and packaged to the platform's own ingest spec, on your device." />
-          <Step3 n="03" title="Post it" body="Download the file and post it from the app with Upload HD on." />
+          <Step3 n="01 · Drop" title="Drop your clip" body="Any editor, any export. Up to 4K at 120 fps, up to 500 MB." />
+          <Step3 n="02 · Rebuild" title="Nova rebuilds it" body="Scaled, colour-tagged and packaged to the platform's own ingest spec, on your device." />
+          <Step3 n="03 · Post" title="Post it" body="Download the file and post it from the app with Upload HD on." />
         </div>
       </section>
 

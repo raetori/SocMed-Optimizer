@@ -22,7 +22,7 @@ export function Starfield() {
       canvas.width = w * dpr
       canvas.height = h * dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      const count = Math.round((w * h) / 5200)
+      const count = Math.round((w * h) / 8600)
       stars = Array.from({ length: count }, () => {
         const depth = Math.random()
         return {
@@ -46,7 +46,7 @@ export function Starfield() {
         }
         const alpha = still ? s.a : s.a * (0.65 + 0.35 * Math.sin(t / 900 + s.tw))
         ctx.globalAlpha = alpha
-        ctx.fillStyle = s.r > 1.1 ? '#fff4dc' : '#dfe3ff'
+        ctx.fillStyle = s.r > 1.1 ? '#fff2d8' : '#efe9df'
         ctx.beginPath()
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
         ctx.fill()

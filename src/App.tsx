@@ -51,13 +51,11 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <CosmosMark className="footer-mark" />
         <span>
-          Nova is made by{' '}
+          Free forever · Made by{' '}
           <a href={BRAND_URL} target="_blank" rel="noreferrer">
             Creation of Cosmos
           </a>
-          , a video editing studio in Makati.
         </span>
       </footer>
     </div>
