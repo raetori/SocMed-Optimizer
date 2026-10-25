@@ -4,38 +4,34 @@ import { navigate } from '../router'
 export default function Home() {
   return (
     <>
-      <section className="hero home-hero">
-        <div className="home-hero-copy">
-          <p className="eyebrow">Nova · video optimizer</p>
-          <h1>
-            Post the <span className="grad">quality you filmed.</span>
-          </h1>
-          <p className="lede">
-            Every platform re-compresses your upload on the way in. Nova hands TikTok, Instagram and Facebook a
-            file built to their exact spec, so the least possible quality is lost. It runs entirely in your
-            browser, with no re-upload and no account.
-          </p>
-          <div className="actions">
-            <button type="button" className="btn btn-primary" onClick={() => navigate('/optimize')}>
-              Optimize a video →
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/check')}>
-              Check a post
-            </button>
-          </div>
-          <p className="muted small">Free. Your video never leaves your device.</p>
+      <section className="welcome">
+        <a className="eyebrow eyebrow-link" href="https://creationofcosmos.com/" target="_blank" rel="noreferrer">
+          Creation of Cosmos
+        </a>
+        <h1 className="title-card">Nova</h1>
+        <h2 className="headline">Post the quality you filmed.</h2>
+        <p className="lede">
+          Every platform re-compresses your upload on the way in. Nova hands TikTok, Instagram and Facebook a file
+          built to their exact spec, so the least possible quality is lost. It runs entirely in your browser, with
+          no re-upload and no account.
+        </p>
+        <div className="welcome-actions">
+          <button type="button" className="btn btn-primary btn-large" onClick={() => navigate('/optimize')}>
+            Optimize a video <span className="arrow">→</span>
+          </button>
+          <button type="button" className="btn btn-secondary btn-large" onClick={() => navigate('/check')}>
+            Check a post
+          </button>
         </div>
+        <p className="welcome-note">
+          <span className="eyebrow">Free</span> Your video never leaves your device.
+        </p>
+        <ol className="features">
+          <Step3 n="01 · Drop" title="Drop your clip" body="Any editor, any export. Up to 4K at 120 fps, up to 500 MB." />
+          <Step3 n="02 · Rebuild" title="Nova rebuilds it" body="Scaled, colour-tagged and packaged to the platform's own ingest spec, on your device." />
+          <Step3 n="03 · Post" title="Post it" body="Download the file and post it from the app with Upload HD on." />
+        </ol>
         <Compare />
-      </section>
-
-      <section className="band">
-        <p className="eyebrow">Three steps</p>
-        <h2>From export to post.</h2>
-        <div className="steps3">
-          <Step3 n="01" title="Drop your clip" body="Any editor, any export. Up to 4K at 120 fps, up to 500 MB." />
-          <Step3 n="02" title="Nova rebuilds it" body="Scaled, colour-tagged and packaged to the platform's own ingest spec, on your device." />
-          <Step3 n="03" title="Post it" body="Download the file and post it from the app with Upload HD on." />
-        </div>
       </section>
 
       <section className="band">
@@ -75,12 +71,12 @@ export default function Home() {
 
       <section className="cta-band">
         <h2>
-          Your next post, <span className="grad">in full quality.</span>
+          Your next post, in full quality.
         </h2>
         <p className="muted">Optimize a clip, then prove it survived with the check. Both free.</p>
         <div className="actions actions-center">
           <button type="button" className="btn btn-primary" onClick={() => navigate('/optimize')}>
-            Optimize a video →
+            Optimize a video <span className="arrow">→</span>
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => navigate('/check')}>
             Check a post
@@ -179,11 +175,11 @@ function Compare() {
 
 function Step3({ n, title, body }: { n: string; title: string; body: string }) {
   return (
-    <div className="step3">
-      <span className="step3-n">{n}</span>
-      <h3>{title}</h3>
-      <p className="muted">{body}</p>
-    </div>
+    <li>
+      <span className="eyebrow">{n}</span>
+      <strong>{title}</strong>
+      <span>{body}</span>
+    </li>
   )
 }
 
