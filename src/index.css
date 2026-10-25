@@ -1,32 +1,34 @@
-@import '@fontsource/space-grotesk/300.css';
-@import '@fontsource/space-grotesk/400.css';
-@import '@fontsource/space-grotesk/500.css';
-@import '@fontsource/space-grotesk/700.css';
-@import '@fontsource/instrument-serif/400.css';
-@import '@fontsource/instrument-serif/400-italic.css';
+@import '@fontsource/manrope/300.css';
+@import '@fontsource/manrope/400.css';
+@import '@fontsource/manrope/500.css';
+@import '@fontsource/manrope/700.css';
+@import '@fontsource/bricolage-grotesque/500.css';
+@import '@fontsource/bricolage-grotesque/600.css';
+@import '@fontsource/bricolage-grotesque/700.css';
+@import '@fontsource/bricolage-grotesque/800.css';
 
-/* Brand tokens, taken from the Creation of Cosmos site (raetori/creation-of-cosmos,
-   src/styles.css): black ground, lavender ink, sunrise orange and nebula violet,
-   Space Grotesk for text and Instrument Serif for headlines. */
+/* Nova's own identity: a deep space ground with a nebula palette of
+   electric violet into aqua, Bricolage Grotesque for display and Manrope
+   for text. Deliberately distinct from any other product's look. */
 :root {
-  --bg: #000000;
-  --surface: #07080d;
-  --surface-2: #0d0e16;
-  --line: rgba(233, 230, 255, 0.12);
-  --line-strong: rgba(233, 230, 255, 0.24);
-  --text: #e9e6ff;
-  --text-muted: #8a8aa8;
-  --accent: #ff8a3d;
-  --accent-light: #ffcf7a;
-  --accent-2: #7a6bff;
-  --on-accent: #0b0710;
-  --glow: rgba(122, 107, 255, 0.22);
-  --glow-warm: rgba(255, 138, 61, 0.12);
-  --warn: #ffcf7a;
-  --danger: #ff7a7a;
+  --bg: #05060c;
+  --surface: #0a0c15;
+  --surface-2: #10131f;
+  --line: rgba(224, 228, 255, 0.11);
+  --line-strong: rgba(224, 228, 255, 0.22);
+  --text: #edf0ff;
+  --text-muted: #9092b8;
+  --accent: #7c6bff;
+  --accent-light: #b2a6ff;
+  --accent-2: #37e0cf;
+  --on-accent: #060713;
+  --glow: rgba(124, 107, 255, 0.24);
+  --glow-warm: rgba(55, 224, 207, 0.1);
+  --warn: #ffc24d;
+  --danger: #ff7a9c;
   --radius: 14px;
-  --font-body: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Manrope', system-ui, sans-serif;
 
   color-scheme: dark;
   font-family: var(--font-body);
@@ -62,7 +64,7 @@ body::before {
 
 a { color: var(--text); }
 h1, h2, h3, h4 { font-family: var(--font-body); font-weight: 500; margin: 0; }
-h1, .step-title, .explainer h2 { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+h1, .step-title, .explainer h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.01em; }
 .muted { color: var(--text-muted); }
 .small { font-size: 0.85rem; }
 
@@ -237,9 +239,9 @@ h1, .step-title, .explainer h2 { font-family: var(--font-display); font-weight: 
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-primary {
-  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  background: linear-gradient(100deg, var(--accent), var(--accent-2));
   color: var(--on-accent);
-  box-shadow: 0 10px 40px -10px rgba(255, 138, 61, 0.7);
+  box-shadow: 0 10px 40px -10px rgba(124, 107, 255, 0.7);
 }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
 .btn-secondary { background: transparent; color: var(--text); border-color: var(--line-strong); }
@@ -325,7 +327,7 @@ pre.alert { font-size: 0.85rem; font-family: ui-monospace, SFMono-Regular, Menlo
 .chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(122, 107, 255, 0.4); }
 .advice {
   border-left: 2px solid var(--accent);
-  background: rgba(255, 138, 61, 0.05);
+  background: rgba(124, 107, 255, 0.06);
   border-radius: 0 10px 10px 0;
   padding: 12px 16px;
   font-size: 0.92rem;
@@ -494,7 +496,7 @@ pre.alert { font-size: 0.85rem; font-family: ui-monospace, SFMono-Regular, Menlo
 
 .band { padding: 44px 0 8px; }
 .band > .eyebrow { margin-bottom: 10px; }
-.band > h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2rem, 4.6vw, 3rem); line-height: 1.02; margin-bottom: 26px; }
+.band > h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2rem, 4.6vw, 3rem); line-height: 1.02; margin-bottom: 26px; }
 
 .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .step3 { border-top: 1px solid var(--line); padding-top: 16px; }
@@ -545,7 +547,7 @@ pre.alert { font-size: 0.85rem; font-family: ui-monospace, SFMono-Regular, Menlo
   padding: 44px 24px;
   text-align: center;
 }
-.cta-band h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.9rem, 4.4vw, 2.8rem); margin-bottom: 8px; }
+.cta-band h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.9rem, 4.4vw, 2.8rem); margin-bottom: 8px; }
 .actions-center { justify-content: center; }
 
 /* ---- Check ---- */
@@ -615,7 +617,7 @@ pre.alert { font-size: 0.85rem; font-family: ui-monospace, SFMono-Regular, Menlo
 .guide-card p { margin: 0; flex: 1; font-size: 0.93rem; }
 .guide { max-width: 720px; margin: 0 auto; padding-top: 12px; }
 .guide .link-btn { margin-bottom: 14px; }
-.guide-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.04; margin-bottom: 20px; }
+.guide-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.04; margin-bottom: 20px; }
 .guide-body { color: var(--text); }
 .guide-body h2 { font-size: 1.35rem; margin: 28px 0 10px; }
 .guide-body p { color: var(--text-muted); margin: 0 0 14px; }
@@ -665,7 +667,7 @@ body::after {
   pointer-events: none;
   background:
     radial-gradient(40% 32% at 18% 12%, rgba(122, 107, 255, 0.16), transparent 70%),
-    radial-gradient(38% 30% at 85% 22%, rgba(255, 138, 61, 0.1), transparent 70%);
+    radial-gradient(38% 30% at 85% 22%, rgba(55, 224, 207, 0.12), transparent 70%);
   filter: blur(8px);
   animation: drift 26s ease-in-out infinite alternate;
 }
@@ -712,12 +714,12 @@ body::after {
 /* Buttons: gradient primary with a soft glow, tactile hover. */
 .btn { border-radius: 999px; transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease; }
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  background: linear-gradient(100deg, var(--accent), var(--accent-2));
   color: var(--on-accent);
   border-color: transparent;
-  box-shadow: 0 10px 30px -12px rgba(255, 138, 61, 0.6);
+  box-shadow: 0 10px 30px -12px rgba(124, 107, 255, 0.6);
 }
-.btn-primary:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 14px 36px -12px rgba(255, 138, 61, 0.7); }
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 14px 36px -12px rgba(124, 107, 255, 0.7); }
 
 /* Section rhythm: more air between bands. */
 .band { padding: 60px 0 10px; }
@@ -730,7 +732,7 @@ body::after {
 .step3-n {
   display: inline-grid; place-items: center;
   width: 34px; height: 34px; border-radius: 9px;
-  background: rgba(255, 138, 61, 0.12);
+  background: rgba(124, 107, 255, 0.12);
   color: var(--accent); font-size: 0.82rem; margin-bottom: 4px;
 }
 
@@ -741,7 +743,7 @@ body::after {
 
 /* Check readout: make the numbers the hero. */
 .big { border-radius: 14px; background: linear-gradient(180deg, var(--surface-2), rgba(7, 8, 13, 0.6)); border: 1px solid var(--line); }
-.big-v { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; }
+.big-v { font-family: var(--font-display); font-weight: 700; font-size: 2.3rem; }
 
 /* FAQ: gentle hover affordance. */
 .faq-q { transition: color 0.14s ease; }
@@ -750,4 +752,4 @@ body::after {
 
 /* Nav: clearer active state. */
 .nav-link { transition: color 0.14s ease, background 0.14s ease; }
-.nav-link.is-on { background: linear-gradient(135deg, rgba(255,138,61,0.16), rgba(122,107,255,0.16)); }
+.nav-link.is-on { background: linear-gradient(135deg, rgba(124,107,255,0.18), rgba(122,107,255,0.16)); }
