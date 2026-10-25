@@ -1,4 +1,5 @@
 import { CosmosMark } from './CosmosMark'
+import { Starfield } from './Starfield'
 import { navigate, useRoute } from './router'
 import Home from './pages/Home'
 import Optimize from './pages/Optimize'
@@ -19,6 +20,7 @@ export default function App() {
 
   return (
     <div className="page">
+      <Starfield />
       <header className="topbar">
         <button type="button" className="brand" aria-label="Nova home" onClick={() => navigate('/')}>
           <CosmosMark className="brand-mark" />

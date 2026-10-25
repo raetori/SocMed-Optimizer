@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../router'
 
 export default function Home() {
@@ -106,14 +106,27 @@ function Compare() {
     setPos(Math.max(0, Math.min(100, ((clientX - r.left) / r.width) * 100)))
   }
 
-  const play = () => {
-    // Keep the two tracks in lockstep from the same start.
-    for (const v of [low.current, hd.current]) {
-      if (!v) continue
-      v.currentTime = 0
-      void v.play().catch(() => {})
+  // Start both tracks together and keep the low copy locked to the HD copy, so
+  // dragging always compares the same frame on both sides.
+  useEffect(() => {
+    const h = hd.current
+    const l = low.current
+    if (!h || !l) return
+    const start = () => {
+      void h.play().catch(() => {})
+      void l.play().catch(() => {})
     }
-  }
+    const sync = () => {
+      if (Math.abs(l.currentTime - h.currentTime) > 0.08) l.currentTime = h.currentTime
+    }
+    h.addEventListener('timeupdate', sync)
+    if (h.readyState >= 2) start()
+    else h.addEventListener('canplay', start, { once: true })
+    return () => {
+      h.removeEventListener('timeupdate', sync)
+      h.removeEventListener('canplay', start)
+    }
+  }, [])
 
   return (
     <div className="compare">
@@ -137,7 +150,6 @@ function Compare() {
           loop
           playsInline
           preload="auto"
-          onLoadedData={play}
         />
         <div className="compare-top" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
           <video ref={low} className="compare-video" src="/media/compare-low.mp4" muted loop playsInline preload="auto" />
