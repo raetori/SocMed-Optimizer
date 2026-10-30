@@ -25,3 +25,13 @@ dist-ssr
 
 # Vendored ffmpeg cores (npm run vendor-core)
 public/cdn
+
+# Secrets and local deploy state: never commit these
+.env
+.env.*
+!.env.example
+.vercel
+*.pem
+*.key
+*.p12
+._*
